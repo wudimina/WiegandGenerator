@@ -68,6 +68,7 @@
 //-----------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------
+tWiegandData tempwiegand;
 
 //-----------------------------------------------------------------------
 // Macros
@@ -76,21 +77,135 @@
 //-----------------------------------------------------------------------
 // Main Function
 //-----------------------------------------------------------------------
+void senddata()
+{
+	static uint8_t counter=7;
+	tWiegandData data;
+
+	if(counter)
+	{
+		counter--;
+		if(counter==0)
+		{
+			counter=7;
+			data.bitlength=32;
+			data.data[0]=0x55;
+			data.data[1]=0xaa;
+			data.data[2]=0x55;
+			data.data[3]=0xaa;
+			SendWiegand(eWiegandPort1, &data);
+		}
+	}
+}
+
+unsigned char AsciitoHex (char ch)
+{
+	char c = ch;
+
+	if(c>'9')
+		c = c-'A'+10;
+	else
+		c = c - '0';
+
+	return c;
+}
+
+unsigned int HexStrtoChar (uint8_t *buf)
+{
+	unsigned int dat=0;
+	dat += (AsciitoHex(*buf++) * 10);
+	dat += AsciitoHex(*buf++);
+	return dat;
+}
+
+void ProcessSerialCommand(uint8_t *dat)
+{
+	enum eWiegandPort portselection;
+	uint8_t mode;
+	uint8_t result;
+
+	if(*dat == 'S')
+	{
+		dat++;
+		if(*dat == 'W')
+		{
+			uint8_t i;
+			dat++;
+
+			mode = AsciitoHex(*dat);
+
+			dat++;
+			portselection = HexStrtoChar(dat);
+			if(portselection>=NUM_WIEGAND_PORT)
+			{
+				return ;
+			}
+			dat+=2;
+			tempwiegand.bitlength = HexStrtoChar(dat);
+
+			dat+=2;
+
+			if(tempwiegand.bitlength%8)
+			{
+				result=1;
+			}
+			else
+			{
+				result=0;
+			}
+
+			for(i=0;i<((tempwiegand.bitlength/8)+result);i++)
+			{
+				tempwiegand.data[i]=AsciitoHex(*dat)<<4;
+				dat++;
+				tempwiegand.data[i]|=AsciitoHex(*dat);
+				dat++;
+			}
+			if(mode==1)
+			{
+				for(i=0;i<NUM_WIEGAND_PORT;i++)
+				{
+					SendWiegand(i, &tempwiegand);
+				}
+			}
+			else
+			{
+				SendWiegand(portselection, &tempwiegand);
+			}
+		}
+	}
+}
 
 int main(void)
 {
+	uint8_t data[50];
+	uint8_t i=0;
 
     // Configure board specific pin muxing
     hardware_init();
 
     // Initialize UART terminal
     dbg_uart_init();
+    InitWiegandProcess();
+    InitWiegandPort(eWiegandPort1, eGPIOPORTB8, eGPIOPORTB9);
 
     PRINTF("\r\nRunning the WiegandGenerator project.\r\n");
 
     for (;;)                                         // Forever loop
     {
-        __asm("NOP");
+        //__asm("NOP");
+		//data[i]=in_char();
+    	data[i]=GETCHAR();
+		if(data[i]==13)
+		{
+			ProcessSerialCommand(data);
+			i=0;
+		}
+		else
+		{
+			//printf("%i",data[i]);
+			i++;
+		}
     }
 
 
