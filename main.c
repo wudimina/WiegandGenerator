@@ -186,8 +186,12 @@ int main(void)
 
     // Initialize UART terminal
     dbg_uart_init();
+
+	InitWiegandPort(eWiegandPort1, eGPIOPORTB8, eGPIOPORTB9);
+	InitWiegandPort(eWiegandPort2, eGPIOPORTB6, eGPIOPORTB7);
+	InitWiegandPort(eWiegandPort3, eGPIOPORTB10, eGPIOPORTB11);
+	InitWiegandPort(eWiegandPort4, eGPIOPORTB5, eGPIOPORTB13);
     InitWiegandProcess();
-    InitWiegandPort(eWiegandPort1, eGPIOPORTB8, eGPIOPORTB9);
 
     PRINTF("\r\nRunning the WiegandGenerator project.\r\n");
 
