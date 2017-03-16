@@ -1,2 +1,7 @@
 *.o
 *.d
+*.mk
+*.launch
+*.htm
+*.a
+makefile
