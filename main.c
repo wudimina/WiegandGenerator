@@ -52,6 +52,8 @@
 // Application Includes
 //-----------------------------------------------------------------------
 #include "wiegand.h"
+#include "arch_DMA.h"
+#include "arch_ADC.h"
 
 //-----------------------------------------------------------------------
 // Function Prototypes
@@ -175,11 +177,27 @@ void ProcessSerialCommand(uint8_t *dat)
 		}
 	}
 }
+void delay(uint32_t uiCount)
+{
+	volatile uint32_t i,j;
+
+	for( i=0;i<uiCount;i++ )
+	{
+		for(j=0;j<100;j++);
+	}
+}
 
 int main(void)
 {
 	uint8_t data[50];
 	uint8_t i=0;
+
+	uint32_t test;
+	uint32_t test2;
+	uint32_t result;
+
+	test=10;
+	test2=1;
 
     // Configure board specific pin muxing
     hardware_init();
@@ -191,15 +209,24 @@ int main(void)
 	InitWiegandPort(eWiegandPort2, eGPIOPORTB6, eGPIOPORTB7);
 	InitWiegandPort(eWiegandPort3, eGPIOPORTB10, eGPIOPORTB11);
 	InitWiegandPort(eWiegandPort4, eGPIOPORTB5, eGPIOPORTB13);
+
     InitWiegandProcess();
 
     PRINTF("\r\nRunning the WiegandGenerator project.\r\n");
+
+
+    arch_DMA_init(eDMAChannel1);
+    arch_DMA_transfer(eDMAChannel1, &test, &test2, sizeof(test2));
+
+    arch_ADC_init();
+
 
     for (;;)                                         // Forever loop
     {
         //__asm("NOP");
 		//data[i]=in_char();
-    	data[i]=GETCHAR();
+
+    	data[i]=getchar();
 		if(data[i]==13)
 		{
 			ProcessSerialCommand(data);
@@ -208,8 +235,16 @@ int main(void)
 		else
 		{
 			//printf("%i",data[i]);
+
+			result = arch_ADC_measure(eADC_channel_tempsensor);
+			printf("%i",result);
+
 			i++;
 		}
+
+		result = arch_ADC_measure(eADC_channel_tempsensor);
+		printf("%i\r\n",result);
+		delay(40000);
     }
 
 
